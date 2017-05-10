@@ -131,8 +131,10 @@ function LoginController (Account) {
     Account
       .login(vm.new_user)
       .then(function(){
-         // TODO #4: clear sign up form
-         // TODO #5: redirect to '/profile'
+
+        vm.new_user = {}; // clear login form
+        $location.path('/profile'); // redirect to '/profile'
+
       })
   };
 }

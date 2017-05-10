@@ -21,6 +21,85 @@ mongoose.connect('mongodb://localhost/angular_auth');
 // require User and Post models
 var User = require('./models/user');
 
+
+// require SQL User
+var sqlUser = require('./models/user_sql');
+
+/* SQL API Routes */
+
+/*
+  To use Sequelize instead of Mongoose,
+  just replace "sqlapi" with "api"
+  in these routes
+*/
+
+app.get('/sqlapi/me', auth.ensureAuthenticated, function (req, res) {
+  sqlUser.findById(req.user).then(function (user) {
+    if (!user) {
+      return res.status(400).send({ message: 'User not found.' });
+    }
+    res.send(user);
+  });
+});
+
+app.put('/sqlapi/me', auth.ensureAuthenticated, function (req, res) {
+  sqlUser.findById(req.user).then(function (user) {
+    if (!user) {
+      return res.status(400).send({ message: 'User not found.' });
+    }
+    user.displayName = req.body.displayName || user.displayName;
+    user.username = req.body.username || user.username;
+    user.email = req.body.email || user.email;
+    user.save().then(function(result) {
+      if (!result) {
+        res.status(500).send({ message: "Oh noes an error!" });
+      }      
+      res.send(result);
+    });
+  });
+});
+
+/* SQL Auth Routes */
+/*
+  To use Sequelize instead of Mongoose, 
+  just replace "sqlauth" with "auth"
+  in these routes
+*/
+
+app.post('/sqlauth/signup', function (req, res) {
+  sqlUser.findOne({where: { email: req.body.email }}).then(function (existingUser) {
+    if (existingUser) {
+      return res.status(409).send({ message: 'Email is already taken.' });
+    }
+    var user = sqlUser.build({
+      displayName: req.body.displayName,
+      username: req.body.username,
+      email: req.body.email,
+      password: req.body.password
+    });
+    user.save().then(function (result) {
+      if (!result) {
+        res.status(500).send({ message: "Oh noes an error!" });
+      }
+      res.send({ token: auth.createJWT(result) });
+    });
+  });
+});
+
+app.post('/sqlauth/login', function (req, res) {
+  sqlUser.findOne({where: { email: req.body.email }}).then(function (existingUser) {
+    if (!existingUser) {
+      return res.status(401).send({ message: 'Invalid email or password.' });
+    }
+    var validPassword = existingUser.comparePassword(req.body.password);
+    if (!validPassword) {
+      return res.status(401).send({ message: 'Invalid email or password.' });
+    }
+    res.send({ token: auth.createJWT(existingUser) });
+  });
+});
+
+
 /*
  * API Routes
  */
@@ -97,7 +176,6 @@ app.post('/auth/login', function (req, res) {
   });
 });
 
-
 /*
  * Catch All Route
  */
@@ -107,7 +185,7 @@ app.get(['/', '/signup', '/login', '/profile'], function (req, res) {
 
 
 /*
- * Listen on localhost:3000
+ * Listen on localhost:9000
  */
 app.listen(9000, function() {
   console.log('server started');
