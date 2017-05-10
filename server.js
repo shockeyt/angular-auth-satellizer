@@ -21,6 +21,7 @@ mongoose.connect('mongodb://localhost/angular_auth');
 // require User and Post models
 var User = require('./models/user');
 
+
 // require SQL User
 var sqlUser = require('./models/user_sql');
 
@@ -97,6 +98,7 @@ app.post('/sqlauth/login', function (req, res) {
     res.send({ token: auth.createJWT(existingUser) });
   });
 });
+
 
 /*
  * API Routes
